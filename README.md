@@ -1,1 +1,105 @@
 # CurrencyConverter
+import tkinter as tk
+from tkinter import ttk
+import requests, json
+from bs4 import BeautifulSoup as bs
+from tkinter import *
+from PIL import ImageTk, Image
+import csv
+
+#Functions
+
+def convert():
+      url = "https://currency-converter18.p.rapidapi.com/api/v1/convert"
+
+      currency_1 = combo_from.get()
+      currency_2 = combo_to.get()
+      amount = input_value.get()
+
+      querystring = {"from": currency_1, "to": currency_2, "amount": amount}
+
+      if currency_2 == 'USD':
+          symbol= '$'
+      elif currency_2 == 'INR':
+          symbol= '₹'
+      elif currency_2 == 'GBP':
+          symbol= '£'
+      elif currency_2 == 'CAD':
+          symbol= 'CA $'
+      elif currency_2 == 'EUR':
+          symbol= '€'
+
+      headers = {
+        "X-RapidAPI-Key": "7bfaa5577dmsh108e71b264b8d71p16374cjsn1d02013ea6ed",
+        "X-RapidAPI-Host": "currency-converter18.p.rapidapi.com"
+      }
+
+      response = requests.get(url, headers=headers, params=querystring)
+
+      data = json.loads(response.text)
+      converted_amount = data['result']['convertedAmount']
+      formatted = symbol + '{:.2f}'.format(converted_amount)
+
+      result['text'] = formatted
+
+      print(converted_amount, formatted)
+
+      with open('Converter_Data.csv', 'a') as filewriter:
+            filewritercsv = csv.writer(filewriter)
+            filewritercsv.writerow([formatted])
+
+
+
+
+#Clolors
+color1= '#7D7D39'
+color2= '#FB8C00'
+color3= '#4527A0'
+color4= '#FFFFFF'
+color5= '#000000'
+
+#configuring the window
+root= tk.Tk()
+root.geometry("500x400")
+root.title("Converter")
+root.resizable(width=False, height=False)
+root.config(bg= color4)#change color
+
+#Frames
+top= Frame(root,width=500,height=60, bg= color1)
+top.grid(row=0,column=0)
+
+main= Frame(root,width=300,height=260, bg=color4)#change color
+main.grid(row=1,column=0)
+
+#Frame Design
+logo= Image.open('image/icons8-currency-50.png')
+logo= logo.resize((40,40))
+logo= ImageTk.PhotoImage(logo)
+logo_name= tk.Label(top,image=logo, compound=LEFT, font=("Georgia 16 bold"),bg=color1, text='Currency Converter', height=5, padx=13, pady=30, anchor=CENTER, fg=color4)
+logo_name.place(x=0, y=0)
+
+
+result= tk.Label(main, relief='solid', font=("Ivy 15 bold"),bg=color4, text=' ',width=20, height=2, pady=7, anchor=CENTER, fg=color5)
+result.place(x=20, y=10)
+
+from_label= tk.Label(main, font=("Georgia 10 bold "),bg=color4, text='From', height=1, width=8, padx=0, pady=0, relief= 'flat', anchor=NW, fg=color5)
+from_label.place(x=20, y=90)
+combo_from= ttk.Combobox(main, width=8, justify='center', font=("Ivy 12 bold"),values=['USD', 'EUR', 'GBP', 'CAD','INR'])
+combo_from.place(x=15, y=115)
+
+to_label= tk.Label(main, font=("Georgia 10 bold"),bg=color4, text='To', height=1, width=8, padx=0, pady=0, relief= 'flat', anchor=NW, fg=color5)
+to_label.place(x=190, y=90)
+combo_to= ttk.Combobox(main, width=8, justify='center', font=("Ivy 12 bold"),values=['USD', 'EUR', 'GBP', 'CAD','INR'])
+combo_to.place(x=180, y=115)
+
+input_value= Entry(main, width=22, justify=CENTER, relief=SOLID, font=("Ivy 12 bold"))
+input_value.place(x=50, y=155)
+
+click_button= Button(main, text='Convert', width=19, padx=5, height=1,bg=color3,fg=color5, font=("Georgia 12 bold "), command= convert)
+click_button.place(x=50, y=210)
+
+
+root.mainloop()
+
+

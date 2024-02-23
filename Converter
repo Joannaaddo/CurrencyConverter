@@ -142,6 +142,9 @@ root.geometry("500x500")
 root.title("Converter")
 root.resizable(width=False, height=False)  # Disable the window's resizing capability
 root.config(bg=color6)  # change window color
+# Change window icon
+root.iconbitmap(r'C:\Users\Barbie\PycharmProjects\pythonProject1\image\vcoin.ico')
+
 
 # Frames
 top = Frame(root, width=500, height=60, bg=color1)
@@ -195,6 +198,13 @@ show_data_button = Button(main, text='Show Data', width=19, padx=5, height=1, bg
 show_data_button.place(x=50, y=290)
 
 root.mainloop()
+
+
+
+
+
+
+
 
 
 

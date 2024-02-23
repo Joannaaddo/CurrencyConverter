@@ -1,117 +1,207 @@
+# Importing necessary libraries
+# tkinter for GUI, PIL for image processing, and csv for file handling
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import requests, json
 from tkinter import *
 from PIL import ImageTk, Image
 import csv
 
-#Functions
 
+# Function to handle currency conversion
 def convert():
-      url = "https://currency-converter18.p.rapidapi.com/api/v1/convert"
+    try:
+        # API endpoint URL for currency conversion
+        url = "https://currency-converter18.p.rapidapi.com/api/v1/convert"
+        # Get currency inputs and amount from GUI elements
+        currency_1 = combo_from.get()
+        currency_2 = combo_to.get()
+        amount = input_value.get()
 
-      currency_1 = combo_from.get()
-      currency_2 = combo_to.get()
-      amount = input_value.get()
+        # Check if amount is numeric
+        try:
+            amount = float(amount)
+        except ValueError:
+            # Show error message if amount is not numeric
+            messagebox.showerror("Error", "Please enter a valid numeric amount.")
+            return
 
-      querystring = {"from": currency_1, "to": currency_2, "amount": amount}
-      
-#conditions for symbols
-      if currency_2 == 'USD':
-          symbol= '$'
-      elif currency_2 == 'INR':
-          symbol= 'Ruppes '
-      elif currency_2 == 'GBP':
-          symbol= '£'
-      elif currency_2 == 'CAD':
-          symbol= 'CA $'
-      elif currency_2 == 'EUR':
-          symbol= '€'
+        # List of valid currencies
+        valid_currencies = ['USD', 'EUR', 'GBP', 'CAD', 'INR']
 
-      headers = {
-        "X-RapidAPI-Key": "7bfaa5577dmsh108e71b264b8d71p16374cjsn1d02013ea6ed",
-        "X-RapidAPI-Host": "currency-converter18.p.rapidapi.com"
-      }
+        # Check if entered currencies are valid
+        if currency_1 not in valid_currencies or currency_2 not in valid_currencies:
+            messagebox.showerror("Error", "Please select valid currencies.")
+            return
 
-      response = requests.get(url, headers=headers, params=querystring)
+        # Conditions for symbols
+        if currency_2 == 'USD':
+           symbol = '$'
+        elif currency_2 == 'INR':
+           symbol = 'Ruppes '
+        elif currency_2 == 'GBP':
+           symbol = '£'
+        elif currency_2 == 'CAD':
+           symbol = 'CA $'
+        elif currency_2 == 'EUR':
+           symbol = '€'
 
-      data = json.loads(response.text)#using the json.load() to convert API to a dictionary to manipulate variable easily
-      converted_amount = data['result']['convertedAmount']#extracted
-      formatted = symbol + '{:.2f}'.format(converted_amount)#format and add symbol to output
 
-      result['text'] = formatted
+        # API headers for authentication
+        headers = {
+            "X-RapidAPI-Key": "7bfaa5577dmsh108e71b264b8d71p16374cjsn1d02013ea6ed",
+            "X-RapidAPI-Host": "currency-converter18.p.rapidapi.com"
+        }
 
-      print(converted_amount, formatted)
+        # API request to perform currency conversion
+        response = requests.get(url, headers=headers, params={"from": currency_1, "to": currency_2, "amount": amount})
 
-    
-      with open('Converter_Data.csv', 'a') as filewriter: #saved file
-            filewritercsv = csv.writer(filewriter)
-            filewritercsv.writerow([formatted])
+        # Convert API response to JSON format
+        data = response.json()
 
+        # Display error message if conversion fails
+        if 'error' in data:
+            messagebox.showerror("Error", data['error']['message'])
+            return
+
+        # Extract converted amount from API response
+        converted_amount = data['result']['convertedAmount']
+        # Format converted amount with symbol
+        formatted = symbol + '{:.2f}'.format(converted_amount)  # format and add symbol to output
+        # Display converted amount in result label
+        result['text'] = formatted
+
+        # Append conversion data to CSV file
+        with open('Converter_Data.csv', 'a', newline='') as file:
+            filewriter = csv.writer(file)
+            # Write header row if file is empty
+            if file.tell() == 0:
+                filewriter.writerow(['From', 'To', 'Amount', 'Converted Amount'])
+                # Write conversion data row
+            filewriter.writerow([currency_1, currency_2, amount, formatted])
+
+    except requests.RequestException as e:
+        # Handle request errors
+        messagebox.showerror("Error", f"Request failed: {e}")
+    except json.JSONDecodeError:
+        # Handle JSON decoding errors
+        messagebox.showerror("Error", "Failed to decode response from API.")
+    except Exception as e:
+        # Handle unexpected errors
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}")
+
+
+
+# Function to clear all input fields and selections
 def clear_all():
     for widget in main.winfo_children():
-        if isinstance(widget,Entry):#every time the clear function is called its clears the Entry,
-            widget.delete(0,END)
-        if isinstance(widget,ttk.Combobox):
-            widget.delete(0,END)
+        if isinstance(widget, Entry):
+            widget.delete(0, END)
+        if isinstance(widget, ttk.Combobox):
+            widget.delete(0, END)
+
+# Function to display converted data from CSV file
+def show_conversion_records():
+    # Create a new window to display converted data
+        data_window = tk.Toplevel(root)
+        data_window.title("Converted Data")
+
+    # Create a Treeview widget to display data in tabular format
+        tree = ttk.Treeview(data_window, columns=("From", "To", "Amount", "Converted Amount"), show="headings")
+
+    # Set column headings
+        tree.heading("From", text="From", anchor=tk.CENTER)
+        tree.heading("To", text="To", anchor=tk.CENTER)
+        tree.heading("Amount", text="Amount", anchor=tk.CENTER)
+        tree.heading("Converted Amount", text="Converted Amount", anchor=tk.CENTER)
+
+    # Read data from CSV file and insert into Treeview
+        with open('Converter_Data.csv', 'r') as csvfile:
+            csvreader = csv.DictReader(csvfile)
+            for row in csvreader:
+                tree.insert("", tk.END, values=(row['From'], row['To'], row['Amount'], row['Converted Amount']))
+
+        # Set same width for columns in header and data rows
+        for col in ("From", "To", "Amount", "Converted Amount"):
+            tree.column(col, width=120, anchor=tk.CENTER)
+
+        tree.pack(expand=True, fill=tk.BOTH)
 
 
-#Colors
-color1= '#631E8D'#purple
-color2= '#E3D2E7'#ligtershade purple
-color3= '#AB47BC'#Darkpurple
-color4= '#FFFFFF' #white
-color5= '#000000' #black
-color6= '#936EAA'#light purple
+# Colors
+color1 = '#631E8D'  # purple
+color2 = '#E3D2E7'  # ligtershade purple
+color3 = '#AB47BC'  # Darkpurple
+color4 = '#FFFFFF'  # white
+color5 = '#000000'  # black
+color6 = '#936EAA'  # light purple
 
-#configuring the window
-root= tk.Tk()
-root.geometry("500x400")
+# configuring the window
+root = tk.Tk()
+root.geometry("500x500")
 root.title("Converter")
-root.resizable(width=False, height=False) # Disable the window's resizing capability
-root.config(bg= color6)#change window color
+root.resizable(width=False, height=False)  # Disable the window's resizing capability
+root.config(bg=color6)  # change window color
 
+# Frames
+top = Frame(root, width=500, height=60, bg=color1)
+top.grid(row=0, column=0)
 
-#Frames
-top= Frame(root,width=500,height=60, bg= color1)
-top.grid(row=0,column=0)
+main = Frame(root, width=300, height=400, bg=color6)
+main.grid(row=1, column=0)
 
-main= Frame(root,width=300,height=300, bg=color6)
-main.grid(row=1,column=0)
-
-#Top Frame Design
-logo= Image.open('image/icons8-currency-50.png')
-logo= logo.resize((40,40))
-logo= ImageTk.PhotoImage(logo)#loading image using pillow
-logo_name= tk.Label(top,image=logo, compound=LEFT, font=("Georgia 16 bold"),bg=color1, text='Currency Converter', height=5, padx=13, pady=30, anchor=CENTER, fg=color4)
+# Top Frame Design
+logo = Image.open('image/icons8-currency-50.png')
+logo = logo.resize((40, 40))
+logo = ImageTk.PhotoImage(logo)  # loading image using pillow
+logo_name = tk.Label(top, image=logo, compound=LEFT, font=("Georgia 16 bold"), bg=color1, text='Currency Converter',
+                     height=5, padx=13, pady=30, anchor=CENTER, fg=color4)
 logo_name.place(x=0, y=0)
 
-#Main Frame Design
-result= tk.Label(main, relief='solid', font=("Ivy 15 bold"),bg=color2, text=' ', width=20, height=2, pady=7, anchor=CENTER, fg=color5)
+# Main Frame Design
+result = tk.Label(main, relief='solid', font=("Ivy 15 bold"), bg=color2, text=' ', width=20, height=2, pady=7,
+                  anchor=CENTER, fg=color5)
 result.place(x=20, y=10)
 
-from_label= tk.Label(main, font=("Georgia 10 bold "),bg=color2, text='From', height=1, width=8, padx=0, pady=0, relief= 'flat', anchor=NW, fg=color5)
+# Labels and comboboxes for currency selection
+from_label = tk.Label(main, font=("Georgia 10 bold "), bg=color2, text='From', height=1, width=8, padx=0, pady=0,
+                      relief='flat', anchor=NW, fg=color5)
 from_label.place(x=20, y=90)
-combo_from= ttk.Combobox(main, width=8, justify='center', font=("Ivy 12 bold"),values=['USD', 'EUR', 'GBP', 'CAD','INR'])
+combo_from = ttk.Combobox(main, width=8, justify='center', font=("Ivy 12 bold"),
+                          values=['USD', 'EUR', 'GBP', 'CAD', 'INR'])
 combo_from.place(x=15, y=115)
 
-to_label= tk.Label(main, font=("Georgia 10 bold"),bg=color2, text='To', height=1, width=8, padx=0, pady=0, relief= 'flat', anchor=NW, fg=color5)
+to_label = tk.Label(main, font=("Georgia 10 bold"), bg=color2, text='To', height=1, width=8, padx=0, pady=0,
+                    relief='flat', anchor=NW, fg=color5)
 to_label.place(x=190, y=90)
-combo_to= ttk.Combobox(main, width=8, justify='center', font=("Ivy 12 bold"),values=['USD', 'EUR', 'GBP', 'CAD','INR'])
+combo_to = ttk.Combobox(main, width=8, justify='center', font=("Ivy 12 bold"),
+                        values=['USD', 'EUR', 'GBP', 'CAD', 'INR'])
 combo_to.place(x=180, y=115)
 
-input_value= Entry(main, width=22, justify=CENTER, relief=SOLID, font=("Ivy 12 bold"),bg=color2)
+# Entry field for amount input
+input_value = Entry(main, width=22, justify=CENTER, relief=SOLID, font=("Ivy 12 bold"), bg=color2)
 input_value.place(x=50, y=155)
 
-click_button= Button(main, text='Convert', width=19, padx=5, height=1,bg=color3,fg=color5, font=("Georgia 12 bold "), command= convert)
+# Buttons for conversion, clearing, and displaying data
+click_button = Button(main, text='Convert', width=19, padx=5, height=1, bg=color3, fg=color5, font=("Georgia 12 bold "),
+                      command=convert)
 click_button.place(x=50, y=210)
 
-clear_button= Button(main, text='Clear', width=19, padx=5, height=1,bg=color3,fg=color5, font=("Georgia 12 bold "), command=clear_all)
+clear_button = Button(main, text='Clear', width=19, padx=5, height=1, bg=color3, fg=color5, font=("Georgia 12 bold "),
+                      command=clear_all)
 clear_button.place(x=50, y=250)
 
-
+show_data_button = Button(main, text='Show Data', width=19, padx=5, height=1, bg='#AB47BC', fg='#000000', font=("Georgia 12 bold "), command=show_conversion_records)
+show_data_button.place(x=50, y=290)
 
 root.mainloop()
+
+
+
+
+
+
+
 
 
 
